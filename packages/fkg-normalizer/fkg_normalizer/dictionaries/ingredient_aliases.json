@@ -1,0 +1,114 @@
+{
+  "_comment": "Ingredient alias dictionary. Key = lowercase alias, Value = canonical English name.",
+  "_version": "1.0.0",
+  "_note": "Add new aliases in alphabetical order. Run normalization regression tests after any change.",
+
+  "capsicum": "Bell Pepper",
+  "sweet pepper": "Bell Pepper",
+  "shimla mirch": "Bell Pepper",
+  "paprika pepper": "Bell Pepper",
+
+  "coriander": "Cilantro",
+  "dhania": "Cilantro",
+  "chinese parsley": "Cilantro",
+  "fresh coriander": "Cilantro",
+  "coriander leaves": "Cilantro",
+
+  "curd": "Yogurt",
+  "dahi": "Yogurt",
+  "dadhi": "Yogurt",
+  "natural yogurt": "Yogurt",
+  "plain yogurt": "Yogurt",
+
+  "ghee": "Clarified Butter",
+  "usli ghee": "Clarified Butter",
+  "desi ghee": "Clarified Butter",
+
+  "groundnut": "Peanut",
+  "groundnut oil": "Peanut Oil",
+  "monkey nut": "Peanut",
+  "earthnut": "Peanut",
+
+  "spring onion": "Green Onion",
+  "scallion": "Green Onion",
+  "green onion": "Green Onion",
+  "salad onion": "Green Onion",
+
+  "rocket": "Arugula",
+  "rucola": "Arugula",
+
+  "courgette": "Zucchini",
+  "marrow": "Zucchini",
+
+  "aubergine": "Eggplant",
+  "brinjal": "Eggplant",
+  "baingan": "Eggplant",
+  "vankaya": "Eggplant",
+
+  "prawns": "Shrimp",
+
+  "stock": "Broth",
+  "chicken stock": "Chicken Broth",
+  "beef stock": "Beef Broth",
+  "vegetable stock": "Vegetable Broth",
+
+  "corn flour": "Cornstarch",
+  "maize starch": "Cornstarch",
+  "corn starch": "Cornstarch",
+
+  "plain flour": "All-Purpose Flour",
+  "maida": "All-Purpose Flour",
+  "refined flour": "All-Purpose Flour",
+
+  "besan": "Chickpea Flour",
+  "gram flour": "Chickpea Flour",
+  "chana flour": "Chickpea Flour",
+
+  "atta": "Whole Wheat Flour",
+  "whole wheat": "Whole Wheat Flour",
+
+  "rawa": "Semolina",
+  "rava": "Semolina",
+  "sooji": "Semolina",
+  "suji": "Semolina",
+
+  "turmeric powder": "Turmeric",
+  "haldi": "Turmeric",
+
+  "cumin seeds": "Cumin",
+  "jeera": "Cumin",
+  "zeera": "Cumin",
+
+  "mustard seeds": "Mustard",
+  "rai": "Mustard",
+
+  "asafoetida": "Hing",
+  "heeng": "Hing",
+
+  "fenugreek seeds": "Fenugreek",
+  "methi seeds": "Fenugreek",
+  "methi dana": "Fenugreek",
+
+  "saffron strands": "Saffron",
+  "kesar": "Saffron",
+  "zafran": "Saffron",
+
+  "cardamom pods": "Cardamom",
+  "elaichi": "Cardamom",
+  "ilayachi": "Cardamom",
+
+  "cloves": "Clove",
+
+  "cinnamon stick": "Cinnamon",
+  "dalchini": "Cinnamon",
+
+  "bay leaves": "Bay Leaf",
+  "tej patta": "Bay Leaf",
+
+  "kokum": "Kokum",
+  "fish tamarind": "Kokum",
+
+  "tamarind paste": "Tamarind",
+  "imli": "Tamarind",
+  "tamarind pulp": "Tamarind"
+}

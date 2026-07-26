@@ -1,0 +1,54 @@
+rules:
+  # ──────────────────────────────────────────────────────────────────────────
+  # NUTRITION RULES
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: NUT_003
+    name: macro_sum_reasonable
+    severity: warning
+    field: nutrition
+    condition: "macros_kcal <= calories * 1.25 or calories == 0"
+    message: "Macronutrient caloric sum exceeds stated calories by more than 25%"
+
+  - id: NUT_004
+    name: calories_plausible_upper
+    severity: warning
+    field: nutrition.calories_kcal
+    condition: "calories <= 2000"
+    message: "Calories per serving exceed 2000 kcal — verify serving size"
+
+  - id: NUT_005
+    name: serving_size_plausible
+    severity: warning
+    field: nutrition.per_serving_g
+    condition: "serving_g <= 3000 or serving_g == 0"
+    message: "Serving size exceeds 3kg — verify units"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # COMPLETENESS RULES
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: COMP_003
+    name: description_minimum_length
+    severity: warning
+    field: description
+    condition: "len(description) >= 50"
+    message: "Description is very short — consider enriching"
+
+  - id: COMP_004
+    name: ingredients_present
+    severity: warning
+    field: ingredients
+    condition: "True"  # Checked in Python; placeholder for YAML-driven docs
+    message: "No ingredients extracted for this dish"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CONFIDENCE RULES
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: CONF_002
+    name: confidence_review_threshold
+    severity: warning
+    field: confidence
+    condition: "confidence >= 0.50"
+    message: "Very low confidence — strongly recommend human review"
