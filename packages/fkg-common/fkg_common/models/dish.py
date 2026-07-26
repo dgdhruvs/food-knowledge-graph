@@ -82,19 +82,16 @@ class NutritionEstimate(BaseModel):
         description="Confidence in nutrition accuracy. Default low as recipe sites vary widely.",
     )
 
-    @field_validator("protein_g")
-    @classmethod
-    def protein_must_not_exceed_serving(cls, v: Optional[float], info: any) -> Optional[float]:
+    @model_validator(mode="after")
+    def protein_must_not_exceed_serving(self) -> "NutritionEstimate":
         """Protein cannot physically exceed the total serving weight."""
-        if v is None:
-            return v
-        serving = info.data.get("per_serving_g")
-        if serving and v > serving:
-            raise ValueError(
-                f"Protein ({v}g) cannot exceed total serving size ({serving}g). "
-                "Rule NUT_002 violation."
-            )
-        return v
+        if self.protein_g is not None and self.per_serving_g is not None:
+            if self.protein_g > self.per_serving_g:
+                raise ValueError(
+                    f"Protein ({self.protein_g}g) cannot exceed total serving size ({self.per_serving_g}g). "
+                    "Rule NUT_002 violation."
+                )
+        return self
 
 
 class DietaryInfo(BaseModel):

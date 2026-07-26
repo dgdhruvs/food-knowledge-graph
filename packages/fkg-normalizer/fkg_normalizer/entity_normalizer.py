@@ -129,6 +129,67 @@ class EntityNormalizer:
         "Burma" → "Myanmar"             (country name change)
     """
 
+    INVALID_DISH_KEYWORDS: set[str] = {
+        "popular recipe", "popular recipes", "latest recipes", "featured recipe",
+        "recipe compilations", "search recipes", "browse recipes", "truly 100% vegetarian recipes",
+        "quick links", "subscribe", "leave a reply", "all recipes", "home", "about",
+        "contact us", "privacy policy", "terms of service", "recipes by category",
+        "festive sweets", "diwali sweets", "holi recipes", "quick breakfast recipes",
+        "popular categories", "top recipes", "recipe index", "side dishes", "main course"
+    }
+
+    COLLECTION_HEADER_PATTERNS: list[str] = [
+        r"^(festive|diwali|holi|eid|christmas|party|quick|easy|top\s*\d*|best|popular|featured|latest|favorite|seasonal)\s+(sweets|recipes|dishes|snacks|curries|desserts|collections|ideas|menu|items|food|starters)$",
+        r"^(sweets|recipes|dishes|curries|desserts|collections|ideas|categories|starters|mains)$",
+        r".*\b(compilations?|collection|categories|roundup|menu ideas|recipes index)\b.*",
+        r".*truly\s*100%\s*vegetarian.*",
+        r".*recipes\s*indian\s*&\s*global.*",
+        r".*100%\s*vegetarian.*",
+        r".*\b(indian & global|global recipes|all rights reserved|site title|leave a reply|search recipes)\b.*",
+    ]
+
+    def normalize_dish_name(self, name: str) -> NormalizationResult | None:
+        """Clean dish titles by removing noise, trailing 'Recipe' suffixes, and parentheticals.
+
+        Returns None if the name is a non-food website header/noise.
+        """
+        clean = name.strip()
+        lower = clean.lower()
+
+        # Reject generic web headers
+        if lower in self.INVALID_DISH_KEYWORDS or any(kw == lower for kw in self.INVALID_DISH_KEYWORDS):
+            return None
+
+        for pattern in self.COLLECTION_HEADER_PATTERNS:
+            if re.match(pattern, lower, flags=re.IGNORECASE):
+                log.info("normalizer.rejected_collection_header", raw_name=name)
+                return None
+
+        changes = []
+        original = name
+
+        # 1. Remove parentheticals: "Cold Coffee Recipe (Creamy Café Style)" → "Cold Coffee Recipe"
+        no_parens = re.sub(r"\([^)]*\)", "", clean).strip()
+        if no_parens != clean and len(no_parens) > 2:
+            clean = no_parens
+            changes.append("remove_parentheticals")
+
+        # 2. Remove pipe subtitles: "Kadhi Recipe | Punjabi Kadhi Pakora" → "Kadhi Recipe"
+        if "|" in clean:
+            clean = clean.split("|")[0].strip()
+            changes.append("remove_pipe_subtitle")
+
+        # 3. Strip trailing "Recipe" or "Recipes": "Paneer Butter Masala Recipe" → "Paneer Butter Masala"
+        stripped_recipe = re.sub(r"\s+recipes?$", "", clean, flags=re.IGNORECASE).strip()
+        if stripped_recipe != clean and len(stripped_recipe) > 2:
+            clean = stripped_recipe
+            changes.append("strip_recipe_suffix")
+
+        if clean.lower() in self.INVALID_DISH_KEYWORDS:
+            return None
+
+        return NormalizationResult(original=original, normalized=clean, changes_made=changes)
+
     def normalize_ingredient(self, name: str) -> NormalizationResult:
         return self._resolve(name, INGREDIENT_ALIASES, "ingredient")
 

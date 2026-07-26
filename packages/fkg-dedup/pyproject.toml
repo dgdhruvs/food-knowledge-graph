@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fkg-dedup"
+version = "0.1.0"
+description = "Duplicate detection engine for Food Knowledge Graph"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fkg-common",
+    "rapidfuzz>=3.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]

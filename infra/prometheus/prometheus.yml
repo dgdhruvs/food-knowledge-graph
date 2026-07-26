@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "fkg-api"
+    static_configs:
+      - targets: ["fkg-api:8000"]

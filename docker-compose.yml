@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ──────────────────────────────────────────────────────────────────────────
   # DATABASES
@@ -23,12 +21,11 @@ services:
       retries: 5
 
   neo4j:
-    image: neo4j:5-enterprise
+    image: neo4j:5
     environment:
       NEO4J_AUTH: neo4j/fkgpassword
-      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
-      NEO4J_dbms_security_procedures_unrestricted: "apoc.*,gds.*"
-      NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
     ports:
       - "7474:7474"  # HTTP browser
       - "7687:7687"  # Bolt protocol
@@ -73,33 +70,31 @@ services:
   # ──────────────────────────────────────────────────────────────────────────
 
   zookeeper:
-    image: bitnami/zookeeper:3.9
+    image: confluentinc/cp-zookeeper:7.5.0
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     volumes:
-      - zookeeper_data:/bitnami/zookeeper
+      - zookeeper_data:/var/lib/zookeeper/data
 
   kafka:
-    image: bitnami/kafka:3.6
+    image: confluentinc/cp-kafka:7.5.0
     depends_on:
       - zookeeper
     ports:
       - "9092:9092"
     environment:
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      ALLOW_PLAINTEXT_LISTENER: "yes"
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     volumes:
-      - kafka_data:/bitnami/kafka
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
+      - kafka_data:/var/lib/kafka/data
 
   # ──────────────────────────────────────────────────────────────────────────
-  # LOCAL LLM (OPTIONAL — requires GPU or accepts slow CPU inference)
+  # LOCAL LLM (OPTIONAL)
   # ──────────────────────────────────────────────────────────────────────────
 
   ollama:
@@ -108,12 +103,6 @@ services:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
-    # Uncomment for GPU support:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
 
   # ──────────────────────────────────────────────────────────────────────────
   # TRANSLATION SERVICE
@@ -153,24 +142,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
   fkg-crawler:
     build:
       context: .
       dockerfile: packages/fkg-crawler/Dockerfile
     environment:
-      DATABASE_URL: postgresql+asyncpg://fkg:fkgpassword@postgres:5432/fkg
+      DATABASE_URL: postgresql://fkg:fkgpassword@postgres:5432/fkg
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      S3_ENDPOINT_URL: ""  # Set for MinIO or local S3-compatible
+      S3_ENDPOINT_URL: ""
       S3_BUCKET: fkg-raw-pages
     depends_on:
-      kafka:
-        condition: service_healthy
       postgres:
         condition: service_healthy
     deploy:
@@ -181,13 +163,10 @@ services:
       context: .
       dockerfile: packages/fkg-agents/Dockerfile
     environment:
-      DATABASE_URL: postgresql+asyncpg://fkg:fkgpassword@postgres:5432/fkg
+      DATABASE_URL: postgresql://fkg:fkgpassword@postgres:5432/fkg
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       OLLAMA_BASE_URL: http://ollama:11434
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-    depends_on:
-      kafka:
-        condition: service_healthy
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-your_openai_api_key}
 
   # ──────────────────────────────────────────────────────────────────────────
   # MONITORING
@@ -209,7 +188,6 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards
 
 volumes:
   postgres_data:

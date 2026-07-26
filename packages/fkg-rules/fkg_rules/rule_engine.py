@@ -179,6 +179,25 @@ class RuleEngine:
                 value=None,
             ))
 
+        # COMP_003: Dish name must be a valid specific food entity, not a category/collection header
+        name_val = data.get("name")
+        if name_val:
+            name_lower = name_val.strip().lower()
+            generic_keywords = {
+                "festive sweets", "diwali sweets", "popular recipes", "featured recipe",
+                "latest recipes", "recipe compilations", "side dishes", "main course",
+                "popular categories", "top recipes", "recipe index", "all recipes"
+            }
+            if name_lower in generic_keywords or re.match(r"^(festive|diwali|holi|eid|party|quick|easy|top\s*\d*|best|popular|featured|latest|favorite)\s+(sweets|recipes|dishes|snacks|curries|desserts|collections|ideas|menu|items)$", name_lower, re.I) or "truly 100% vegetarian" in name_lower or "recipesindian" in name_lower or "global recipes" in name_lower:
+                violations.append(RuleViolation(
+                    rule_id="COMP_003",
+                    rule_name="dish_name_valid_food_entity",
+                    severity=RuleSeverity.ERROR,
+                    message=f"Dish name '{name_val}' is a generic collection/tagline header, not a specific food entity",
+                    field="name",
+                    value=name_val,
+                ))
+
         # COMP_002: Cuisine hint is mandatory
         if not data.get("cuisine_hint"):
             violations.append(RuleViolation(

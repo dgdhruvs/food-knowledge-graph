@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Food Knowledge Graph — Control Platform & Dashboard</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- vis-network CDN for Force-Directed Graph -->
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { background-color: #0b0f19; color: #f3f4f6; }
+    .glass {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: linear-gradient(135deg, rgba(31, 41, 55, 0.5), rgba(17, 24, 39, 0.75));
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    #mynetwork {
+      width: 100%;
+      height: 520px;
+      border-radius: 0.75rem;
+      background: #090d16;
+    }
+    .flow-step {
+      transition: all 0.3s ease;
+    }
+    .flow-step:hover {
+      transform: translateY(-2px);
+      border-color: rgba(139, 92, 246, 0.6);
+      box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.25);
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen pb-16">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+  <!-- Navigation Header -->
+  <header class="glass sticky top-0 z-40 px-6 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-xl shadow-lg shadow-violet-500/30">
+        🍲
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Food Knowledge Graph
+          <span class="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-semibold border border-violet-500/30">v1.0 Production</span>
+        </h1>
+        <p class="text-xs text-gray-400">Holistic Infrastructure, AI Agents & Knowledge Graph Platform</p>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span id="live-indicator">Live Telemetry Active</span>
+      </div>
+      <button onclick="fetchSummary(); fetchServices(); fetchAgents(); fetchGraph();" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 border border-gray-700 transition">
+        🔄 Refresh
+      </button>
+      <a href="/docs" target="_blank" class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-xs font-semibold text-white shadow-md shadow-violet-600/30 transition">
+        OpenAPI Docs ↗
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-8 space-y-10">
+
+    <!-- Section 1: Microservices Health Grid -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-gray-100 flex items-center gap-2">
+          ⚡ Services & Infrastructure Health
+        </h2>
+        <span class="text-xs text-gray-400">10 Microservices Probes</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4" id="services-grid">
+        <div class="glass-card p-4 rounded-xl text-center animate-pulse"><div class="h-4 bg-gray-800 rounded w-1/2 mx-auto"></div></div>
+      </div>
+    </section>
+
+    <!-- Section 2: AI Agents System Matrix -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-gray-100 flex items-center gap-2">
+            🤖 Specialized AI Agents Matrix
+          </h2>
+          <p class="text-xs text-gray-400">Real-time status, LLM providers, and contracts for all 6 specialized AI Agents</p>
+        </div>
+        <span class="text-xs px-2.5 py-1 rounded-md bg-violet-500/20 text-violet-300 font-semibold border border-violet-500/30">
+          6 Autonomous AI Agents
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="agents-grid">
+        <!-- Rendered via JS -->
+        <div class="glass-card p-5 rounded-2xl animate-pulse space-y-3">
+          <div class="h-4 bg-gray-800 rounded w-1/3"></div>
+          <div class="h-3 bg-gray-800 rounded w-full"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: End-to-End RAG & Ingestion Data Flow Architecture -->
+    <section class="glass-card p-6 rounded-3xl border-violet-500/30 relative overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-800 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-gray-100 flex items-center gap-2">
+            🔄 End-to-End RAG & Ingestion Data Flow Architecture
+          </h2>
+          <p class="text-xs text-gray-400">Step-by-step pipeline execution when any Web URL is enqueued into the system</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold border border-indigo-500/30">
+            Real-time Pipeline Active
+          </span>
+        </div>
+      </div>
+
+      <!-- Flow Diagram Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        <!-- Step 1 -->
+        <div class="flow-step glass p-4 rounded-2xl border-gray-700/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold text-violet-400 uppercase tracking-wider mb-2">
+              <span>Step 1</span>
+              <span>Input</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">1. Web URL Submission</h3>
+            <p class="text-[11px] text-gray-400">Target Web URL (e.g. vegrecipesofindia.com) submitted via API / Dashboard.</p>
+          </div>
+          <div class="mt-4 pt-2 border-t border-gray-800 text-[10px] text-violet-300 font-mono">
+            FastAPI ➔ Redis Queue
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="flow-step glass p-4 rounded-2xl border-gray-700/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2">
+              <span>Step 2</span>
+              <span>Agent 1 & 2</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">2. Parse & Extract</h3>
+            <p class="text-[11px] text-gray-400">UrlClassifierAgent + HtmlExtractorAgent parse HTML tables & Schema.org JSON-LD scripts.</p>
+          </div>
+          <div class="mt-4 pt-2 border-t border-gray-800 text-[10px] text-blue-300 font-mono">
+            BS4 + JSON-LD Parser
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="flow-step glass p-4 rounded-2xl border-gray-700/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">
+              <span>Step 3</span>
+              <span>Agent 3</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">3. Dish Discovery AI</h3>
+            <p class="text-[11px] text-gray-400">DishDiscoveryAgent evaluates candidates & rejects UI noise ('Festive Sweets', 'Popular Recipes').</p>
+          </div>
+          <div class="mt-4 pt-2 border-t border-gray-800 text-[10px] text-amber-300 font-mono">
+            Ollama / OpenAI Reasoning
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="flow-step glass p-4 rounded-2xl border-gray-700/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2">
+              <span>Step 4</span>
+              <span>Agent 4 & 5</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">4. Enrich & Validate</h3>
+            <p class="text-[11px] text-gray-400">DishInformationAgent enriches ingredients & nutrition; RuleEngine executes COMP_003 rules.</p>
+          </div>
+          <div class="mt-4 pt-2 border-t border-gray-800 text-[10px] text-emerald-300 font-mono">
+            LLM + RuleEngine Rules
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="flow-step glass p-4 rounded-2xl border-gray-700/80 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold text-cyan-400 uppercase tracking-wider mb-2">
+              <span>Step 5</span>
+              <span>Agent 6 + RAG</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">5. Graph & Vector RAG</h3>
+            <p class="text-[11px] text-gray-400">KnowledgeGraphAgent dedups aliases & writes to PostgreSQL + Neo4j Graph + Weaviate Vector RAG.</p>
+          </div>
+          <div class="mt-4 pt-2 border-t border-gray-800 text-[10px] text-cyan-300 font-mono">
+            Neo4j + Weaviate Hybrid RAG
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 4: Ingestion & Telemetry Metrics -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-gray-100 flex items-center gap-2">
+          📊 Knowledge Graph Telemetry & Queue
+        </h2>
+        <span class="text-xs text-gray-400">Live Database Counters</span>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="glass-card p-5 rounded-2xl border-violet-500/20 relative overflow-hidden">
+          <div class="text-xs text-violet-400 font-semibold uppercase tracking-wider">Total Ingested Dishes</div>
+          <div class="text-3xl font-black text-white mt-1" id="stat-dishes">--</div>
+          <div class="text-[10px] text-gray-400 mt-1">PostgreSQL & Neo4j Dual Synced</div>
+        </div>
+        <div class="glass-card p-5 rounded-2xl border-cyan-500/20 relative overflow-hidden">
+          <div class="text-xs text-cyan-400 font-semibold uppercase tracking-wider">Ingredients Graph Nodes</div>
+          <div class="text-3xl font-black text-white mt-1" id="stat-ingredients">--</div>
+          <div class="text-[10px] text-gray-400 mt-1">Extracted & Linked Ingredients</div>
+        </div>
+        <div class="glass-card p-5 rounded-2xl border-amber-500/20 relative overflow-hidden">
+          <div class="text-xs text-amber-400 font-semibold uppercase tracking-wider">Cuisines</div>
+          <div class="text-3xl font-black text-white mt-1" id="stat-cuisines">--</div>
+          <div class="text-[10px] text-gray-400 mt-1">National & Regional Cuisines</div>
+        </div>
+        <div class="glass-card p-5 rounded-2xl border-emerald-500/20 relative overflow-hidden">
+          <div class="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Countries</div>
+          <div class="text-3xl font-black text-white mt-1" id="stat-countries">--</div>
+          <div class="text-[10px] text-gray-400 mt-1">Geographical Provenance</div>
+        </div>
+      </div>
+
+      <!-- Queue Status Breakdown -->
+      <div class="glass-card p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-semibold text-gray-300">Crawl Jobs Pipeline:</span>
+          <span class="px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-300 text-xs font-medium border border-blue-500/30" id="queue-parsed">Parsed: --</span>
+          <span class="px-2.5 py-1 rounded-md bg-yellow-500/20 text-yellow-300 text-xs font-medium border border-yellow-500/30" id="queue-queued">Queued: --</span>
+          <span class="px-2.5 py-1 rounded-md bg-red-500/20 text-red-300 text-xs font-medium border border-red-500/30" id="queue-failed">Failed: --</span>
+        </div>
+        <button onclick="triggerSeed()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md shadow-indigo-600/30 transition">
+          🚀 Re-trigger Seed Crawl Queue
+        </button>
+      </div>
+    </section>
+
+    <!-- Section 5: Interactive Knowledge Graph Visualizer -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-gray-100 flex items-center gap-2">
+            🕸️ Interactive Neo4j Knowledge Graph Visualizer
+          </h2>
+          <p class="text-xs text-gray-400">Live Force-Directed graph canvas showing Dish, Cuisine, Country & Ingredient nodes</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-500"></span> Dish</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Cuisine</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Country</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-cyan-500"></span> Ingredient</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div class="lg:col-span-3 glass-card p-3 rounded-2xl relative">
+          <div id="mynetwork"></div>
+          <div class="absolute bottom-6 right-6 flex gap-2">
+            <button onclick="resetGraphZoom()" class="px-2.5 py-1 bg-gray-800/90 text-gray-300 text-xs font-medium rounded-md border border-gray-700 hover:bg-gray-700">Center Graph</button>
+          </div>
+        </div>
+
+        <!-- Node Inspector Drawer -->
+        <div class="glass-card p-5 rounded-2xl flex flex-col justify-between" id="inspector-card">
+          <div>
+            <h3 class="text-sm font-bold text-gray-200 border-b border-gray-800 pb-2 mb-3">🔍 Node Inspector</h3>
+            <div id="inspector-content" class="text-xs text-gray-400 space-y-2">
+              <p>Click any node on the graph canvas to inspect properties and relationships.</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-800">
+            <span class="text-[10px] text-gray-500">Powered by Neo4j Cypher Engine</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Action Control Center & Recent Ingested Dishes -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Action Control Center -->
+      <div class="glass-card p-6 rounded-2xl space-y-4">
+        <h2 class="text-md font-bold text-gray-100 flex items-center gap-2">
+          🕹️ Action Control Center
+        </h2>
+        <p class="text-xs text-gray-400">Enqueue new web pages or trigger AI extraction workers.</p>
+
+        <form id="crawl-form" onsubmit="event.preventDefault(); submitCrawl();" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Target Web URL</label>
+            <input type="url" id="crawl-url" required placeholder="https://www.vegrecipesofindia.com/paneer-butter-masala/"
+                   class="w-full px-3 py-2 text-xs rounded-lg bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-violet-500" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-xs font-bold text-white shadow-md shadow-violet-600/30 transition">
+            ➕ Enqueue Target Crawl Job
+          </button>
+        </form>
+      </div>
+
+      <!-- Recent Ingested Dishes Table -->
+      <div class="lg:col-span-2 glass-card p-6 rounded-2xl">
+        <h2 class="text-md font-bold text-gray-100 mb-3 flex items-center justify-between">
+          <span>🥘 Recent Ingested Dishes</span>
+          <span class="text-xs font-normal text-gray-400">Latest Live Database Records</span>
+        </h2>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-gray-800 text-gray-400 font-semibold">
+                <th class="pb-2">Dish Name</th>
+                <th class="pb-2">Cuisine</th>
+                <th class="pb-2">Category</th>
+                <th class="pb-2">Confidence</th>
+              </tr>
+            </thead>
+            <tbody id="dishes-table-body" class="divide-y divide-gray-800/60 text-gray-300">
+              <tr><td colspan="4" class="py-4 text-center text-gray-500">Loading dishes...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Script Logic -->
+  <script>
+    let network = null;
+
+    function showToast(msg, type='success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `px-4 py-2.5 rounded-xl text-xs font-semibold text-white shadow-xl transition-all duration-300 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`;
+      toast.innerText = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    async function fetchSummary() {
+      try {
+        const res = await fetch('/v1/dashboard/summary');
+        const data = await res.json();
+        
+        document.getElementById('stat-dishes').innerText = data.metrics.dishes.toLocaleString();
+        document.getElementById('stat-ingredients').innerText = data.metrics.ingredients.toLocaleString();
+        document.getElementById('stat-cuisines').innerText = data.metrics.cuisines.toLocaleString();
+        document.getElementById('stat-countries').innerText = data.metrics.countries.toLocaleString();
+
+        document.getElementById('queue-parsed').innerText = `Parsed: ${data.queue.parsed || 0}`;
+        document.getElementById('queue-queued').innerText = `Queued: ${data.queue.queued || 0}`;
+        document.getElementById('queue-failed').innerText = `Failed: ${data.queue.failed || 0}`;
+
+        const tbody = document.getElementById('dishes-table-body');
+        tbody.innerHTML = data.recent_dishes.map(d => `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="py-2.5 font-semibold text-white">${d.name}</td>
+            <td class="py-2.5 text-gray-400">${d.cuisine_name || 'General'}</td>
+            <td class="py-2.5"><span class="px-2 py-0.5 rounded bg-gray-800 text-gray-300 text-[10px] uppercase font-bold">${d.category}</span></td>
+            <td class="py-2.5 text-emerald-400 font-medium">${(d.confidence * 100).toFixed(0)}%</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error("Summary fetch error", err);
+      }
+    }
+
+    async function fetchServices() {
+      try {
+        const res = await fetch('/v1/dashboard/services');
+        const data = await res.json();
+        const grid = document.getElementById('services-grid');
+
+        const serviceNames = {
+          postgresql: "PostgreSQL 16",
+          neo4j: "Neo4j Graph 5",
+          redis: "Redis Cache 7",
+          fkg_api: "REST API",
+          fkg_crawler: "Crawler Worker",
+          fkg_agents: "AI Agent Engine",
+          ollama: "Ollama LLM",
+          weaviate: "Weaviate Vector",
+        };
+
+        grid.innerHTML = Object.entries(data).map(([key, info]) => {
+          const isOnline = info.status === 'online';
+          return `
+            <div class="glass-card p-3.5 rounded-xl flex flex-col justify-between border ${isOnline ? 'border-emerald-500/20' : 'border-red-500/20'}">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-200">${serviceNames[key] || key}</span>
+                <span class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}"></span>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+                <span class="font-medium ${isOnline ? 'text-emerald-400' : 'text-red-400'}">${info.status.toUpperCase()}</span>
+                <span>${info.latency_ms ? info.latency_ms + 'ms' : 'active'}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error("Services fetch error", err);
+      }
+    }
+
+    async function fetchAgents() {
+      try {
+        const res = await fetch('/v1/dashboard/agents');
+        const data = await res.json();
+        const grid = document.getElementById('agents-grid');
+
+        grid.innerHTML = data.agents.map(ag => {
+          const isHealthy = ag.status === 'healthy';
+          return `
+            <div class="glass-card p-5 rounded-2xl flex flex-col justify-between border ${isHealthy ? 'border-violet-500/30' : 'border-amber-500/30'} space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 font-mono text-[10px] font-bold border border-violet-500/30">
+                    ${ag.code}
+                  </span>
+                  <span class="flex items-center gap-1.5 text-[10px] font-bold uppercase ${isHealthy ? 'text-emerald-400' : 'text-amber-400'}">
+                    <span class="w-2 h-2 rounded-full ${isHealthy ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}"></span>
+                    ${ag.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <h3 class="text-sm font-bold text-white">${ag.name}</h3>
+                <p class="text-xs text-gray-400 mt-1 leading-relaxed">${ag.description}</p>
+              </div>
+
+              <div class="pt-3 border-t border-gray-800/80 space-y-1.5 text-[11px]">
+                <div class="flex items-center justify-between text-gray-400">
+                  <span class="font-semibold text-gray-400">Provider:</span>
+                  <span class="font-mono text-gray-300 text-[10px]">${ag.provider}</span>
+                </div>
+                <div class="flex items-center justify-between text-gray-400">
+                  <span class="font-semibold text-gray-400">Input:</span>
+                  <span class="text-gray-300 text-[10px]">${ag.input}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error("Agents fetch error", err);
+      }
+    }
+
+    async function fetchGraph() {
+      try {
+        const res = await fetch('/v1/dashboard/graph?limit=100');
+        const data = await res.json();
+
+        const groupColors = {
+          Dish: { background: '#8b5cf6', border: '#7c3aed' },
+          Cuisine: { background: '#f59e0b', border: '#d97706' },
+          Country: { background: '#10b981', border: '#059669' },
+          Ingredient: { background: '#06b6d4', border: '#0891b2' },
+        };
+
+        const formattedNodes = data.nodes.map(n => ({
+          ...n,
+          shape: 'dot',
+          size: n.group === 'Dish' ? 18 : 12,
+          color: groupColors[n.group] || { background: '#6b7280', border: '#4b5563' },
+          font: { color: '#ffffff', size: 11, face: 'Inter' }
+        }));
+
+        const formattedEdges = data.edges.map(e => ({
+          ...e,
+          color: { color: 'rgba(255, 255, 255, 0.15)', highlight: '#8b5cf6' },
+          arrows: 'to',
+          font: { color: '#9ca3af', size: 9 }
+        }));
+
+        const container = document.getElementById('mynetwork');
+        const graphData = { nodes: new vis.DataSet(formattedNodes), edges: new vis.DataSet(formattedEdges) };
+        const options = {
+          physics: { barnesHut: { gravitationalConstant: -3000, springLength: 95 } },
+          interaction: { hover: true, tooltipDelay: 100 }
+        };
+
+        network = new vis.Network(container, graphData, options);
+
+        network.on("click", function (params) {
+          if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            const node = formattedNodes.find(n => n.id === nodeId);
+            if (node) {
+              document.getElementById('inspector-content').innerHTML = `
+                <div class="p-2.5 bg-gray-900/80 rounded-lg space-y-1 border border-gray-800">
+                  <div class="font-bold text-white text-sm">${node.label}</div>
+                  <div class="text-[11px] text-violet-400 font-semibold uppercase">${node.group} Node</div>
+                  <div class="text-[10px] text-gray-500 font-mono">ID: ${node.id}</div>
+                </div>
+              `;
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Graph fetch error", err);
+      }
+    }
+
+    function resetGraphZoom() {
+      if (network) network.fit();
+    }
+
+    async function submitCrawl() {
+      const urlInput = document.getElementById('crawl-url');
+      const url = urlInput.value;
+      try {
+        const res = await fetch('/v1/dashboard/trigger-crawl', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        showToast(`Crawl job queued for ${url}`);
+        urlInput.value = '';
+        fetchSummary();
+      } catch (err) {
+        showToast('Failed to queue crawl job', 'error');
+      }
+    }
+
+    async function triggerSeed() {
+      try {
+        const res = await fetch('/v1/dashboard/trigger-seed', { method: 'POST' });
+        showToast('Seed crawl jobs re-queued!');
+        fetchSummary();
+      } catch (err) {
+        showToast('Failed to trigger seed queue', 'error');
+      }
+    }
+
+    // Init & Polling
+    fetchSummary();
+    fetchServices();
+    fetchAgents();
+    fetchGraph();
+    setInterval(() => {
+      fetchSummary();
+      fetchServices();
+      fetchAgents();
+    }, 4000);
+  </script>
+</body>
+</html>
