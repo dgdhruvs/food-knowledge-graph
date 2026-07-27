@@ -12,7 +12,7 @@ from fkg_common.models.parsed_page import ParsedPage
 
 @pytest.fixture
 def agent() -> DishDiscoveryAgent:
-    return DishDiscoveryAgent(model_name="llama3")
+    return DishDiscoveryAgent(model_name="THUDM/GLM-Z1-9B-0414")
 
 
 @pytest.fixture

@@ -1,0 +1,3 @@
+fkg-common
+structlog>=23.0
+jinja2>=3.1.0

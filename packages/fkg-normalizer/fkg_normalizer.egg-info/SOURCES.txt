@@ -1,0 +1,7 @@
+pyproject.toml
+fkg_normalizer/entity_normalizer.py
+fkg_normalizer.egg-info/PKG-INFO
+fkg_normalizer.egg-info/SOURCES.txt
+fkg_normalizer.egg-info/dependency_links.txt
+fkg_normalizer.egg-info/requires.txt
+fkg_normalizer.egg-info/top_level.txt

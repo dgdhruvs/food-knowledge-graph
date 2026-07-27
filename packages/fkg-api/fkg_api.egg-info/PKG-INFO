@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: fkg-api
+Version: 0.1.0
+Summary: FastAPI endpoints for Food Knowledge Graph
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fkg-common
+Requires-Dist: fastapi>=0.110.0
+Requires-Dist: uvicorn[standard]>=0.27.0
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: prometheus-fastapi-instrumentator>=6.1.0
+Requires-Dist: neo4j>=5.0.0
+Requires-Dist: structlog>=23.0

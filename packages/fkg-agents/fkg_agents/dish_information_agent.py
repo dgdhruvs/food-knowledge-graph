@@ -32,11 +32,13 @@ class DishInformationAgent(BaseAgent[DishOutput]):
 
     def __init__(
         self,
-        model_name: str = "llama3",
+        model_name: str | None = None,
+        vllm_url: str | None = None,
         ollama_url: str | None = None,
         openai_api_key: str | None = None,
     ) -> None:
-        self._model_name = model_name
+        self._model_name = model_name or os.getenv("LLM_MODEL_NAME", "THUDM/GLM-Z1-9B-0414")
+        self._vllm_url = vllm_url or os.getenv("VLLM_BASE_URL", os.getenv("OPENAI_BASE_URL", "http://localhost:8000/v1"))
         self._ollama_url = ollama_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self._openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY")
 
@@ -75,10 +77,41 @@ class DishInformationAgent(BaseAgent[DishOutput]):
             raise ValueError(f"Failed to parse LLM response into DishOutput: {exc}") from exc
 
     def _call_llm(self, prompt: str) -> tuple[str, int, int, str]:
-        """Invoke local Ollama instance or OpenAI API."""
+        """Invoke vLLM, local Ollama instance, or OpenAI API."""
+        try:
+            return self._call_vllm(prompt)
+        except Exception as exc:
+            log.warning("dish_information_agent.vllm_failed", error=str(exc))
+            if self._openai_api_key and not self._openai_api_key.startswith("your_"):
+                return self._call_openai(prompt)
+            return self._call_ollama(prompt)
+
+    def _call_vllm(self, prompt: str) -> tuple[str, int, int, str]:
+        """Invoke vLLM OpenAI-compatible endpoint."""
+        url = f"{self._vllm_url.rstrip('/')}/chat/completions"
+        headers = {"Content-Type": "application/json"}
         if self._openai_api_key and not self._openai_api_key.startswith("your_"):
-            return self._call_openai(prompt)
-        return self._call_ollama(prompt)
+            headers["Authorization"] = f"Bearer {self._openai_api_key}"
+        else:
+            headers["Authorization"] = "Bearer EMPTY"
+        payload = {
+            "model": self._model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+        }
+        with httpx.Client(timeout=60.0) as client:
+            resp = client.post(url, headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            choice = data["choices"][0]
+            content = choice["message"]["content"]
+            usage = data.get("usage", {})
+            return (
+                content,
+                usage.get("prompt_tokens", 0),
+                usage.get("completion_tokens", 0),
+                f"vllm/{self._model_name}",
+            )
 
     def _call_ollama(self, prompt: str) -> tuple[str, int, int, str]:
         """Invoke Ollama REST endpoint."""

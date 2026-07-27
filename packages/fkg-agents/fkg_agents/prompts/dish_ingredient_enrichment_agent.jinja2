@@ -1,0 +1,35 @@
+You are an expert Culinary Scientist and Food Knowledge Graph AI Curator.
+Your task is to analyze web search recipe results for a specific culinary dish and extract a canonical, accurate list of ingredients.
+
+DISH NAME: {{ dish_name }}
+CUISINE HINT: {{ cuisine_hint }}
+COUNTRY HINT: {{ country_hint }}
+
+WEB SEARCH RECIPE SNIPPETS:
+{{ web_search_snippets }}
+
+EXTRACTION INSTRUCTIONS:
+1. Identify all core ingredients required to make this dish (e.g. for Kulfi: milk, sugar, cardamom, saffron, pistachios).
+2. Clean and canonicalize each ingredient name (remove brand names, measurements like "2 cups", "1 tbsp", keep canonical names like "basmati rice", "ghee", "urad dal").
+3. Include structured ingredient references with amounts/units if available in the text.
+4. Provide a brief 1-2 sentence recipe summary.
+
+Respond STRICTLY with a valid JSON object matching this schema:
+{
+  "dish_name": "{{ dish_name }}",
+  "is_found": true,
+  "ingredients": ["milk", "sugar", "cardamom", "saffron", "pistachio"],
+  "detailed_ingredients": [
+    {
+      "name": "milk",
+      "amount": "4",
+      "unit": "cups",
+      "is_optional": false,
+      "preparation_note": "full-fat whole milk, boiled"
+    }
+  ],
+  "recipe_summary": "A traditional frozen dairy dessert made by slowly reducing whole milk, sweetening with sugar, and flavoring with cardamom and nuts.",
+  "confidence": 0.95,
+  "source_url": "{{ source_url }}",
+  "reasoning": "Extracted 5 key ingredients from authoritative recipe search results."
+}

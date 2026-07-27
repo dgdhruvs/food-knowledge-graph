@@ -99,13 +99,37 @@ def extract_dishes_from_wikipedia(soup: BeautifulSoup, url: str) -> list[dict]:
     return extracted_dishes
 
 
+CUISINE_KEYWORD_RULES: list[tuple[list[str], tuple[str, str]]] = [
+    (["thai", "tom kha", "tom yum", "pad thai", "som tam", "sticky rice"], ("Thailand", "Thai Cuisine")),
+    (["italian", "pasta", "pizza", "risotto", "tiramisu"], ("Italy", "Italian Cuisine")),
+    (["japanese", "sushi", "ramen", "tempura", "teriyaki"], ("Japan", "Japanese Cuisine")),
+    (["mexican", "taco", "burrito", "enchilada", "quesadilla"], ("Mexico", "Mexican Cuisine")),
+    (["french", "croissant", "baguette", "souffle", "ratatouille"], ("France", "French Cuisine")),
+    (["american", "burger", "apple pie", "brownie", "pancake", "muffin", "ketchup"], ("United States", "American Cuisine")),
+    (["chinese", "dim sum", "chow mein", "kung pao"], ("China", "Chinese Cuisine")),
+]
+
+
+def infer_cuisine_and_country(url: str, dish_name: str = "") -> tuple[str, str]:
+    """Dynamically infer correct country and cuisine from URL path and dish title keywords."""
+    url_lower = url.lower()
+    dish_lower = dish_name.lower()
+    combined_text = f"{url_lower} {dish_lower}"
+
+    for keywords, (country, cuisine) in CUISINE_KEYWORD_RULES:
+        if any(kw in combined_text for kw in keywords):
+            return country, cuisine
+
+    if "india" in url_lower or "vegrecipes" in url_lower:
+        return "India", "Indian Cuisine"
+
+    return "Global", "Global Cuisine"
+
+
 def extract_dishes_from_generic_recipe_site(soup: BeautifulSoup, url: str) -> list[dict]:
     """Extract structured dish information from Schema.org JSON-LD scripts and article titles."""
     extracted_dishes = []
     scripts = soup.find_all("script", type="application/ld+json")
-
-    country_name = "India" if ("india" in url.lower() or "vegrecipes" in url.lower()) else "Global"
-    cuisine_name = "Indian Cuisine" if ("india" in url.lower() or "vegrecipes" in url.lower()) else "Global Cuisine"
 
     for script in scripts:
         if not script.string:
@@ -125,6 +149,7 @@ def extract_dishes_from_generic_recipe_site(soup: BeautifulSoup, url: str) -> li
                 if item_type == "Recipe" or (isinstance(item_type, list) and "Recipe" in item_type):
                     name = item.get("name")
                     if name:
+                        country_name, cuisine_name = infer_cuisine_and_country(url, name)
                         desc = item.get("description", f"Vegetarian dish from {country_name}.")
                         ingredients = item.get("recipeIngredient", [])
                         if isinstance(ingredients, str):
@@ -164,6 +189,7 @@ def extract_dishes_from_generic_recipe_site(soup: BeautifulSoup, url: str) -> li
                             item_obj = elem.get("item", elem)
                             name = item_obj.get("name") if isinstance(item_obj, dict) else None
                             if name and len(name) < 60:
+                                item_country, item_cuisine = infer_cuisine_and_country(url, name)
                                 extracted_dishes.append({
                                     "name": name.strip(),
                                     "native_name": None,
@@ -172,8 +198,8 @@ def extract_dishes_from_generic_recipe_site(soup: BeautifulSoup, url: str) -> li
                                     "description": f"Recipe from {url}.",
                                     "category": "traditional",
                                     "meal_types": ["lunch", "dinner"],
-                                    "cuisine_name": cuisine_name,
-                                    "country_name": country_name,
+                                    "cuisine_name": item_cuisine,
+                                    "country_name": item_country,
                                     "taste_profile": ["savory"],
                                     "texture": None,
                                     "prep_time_min": 25,
@@ -198,6 +224,7 @@ def extract_dishes_from_generic_recipe_site(soup: BeautifulSoup, url: str) -> li
         for h in headings[:20]:
             title_text = h.get_text().strip()
             if title_text and 3 < len(title_text) < 55 and not any(kw in title_text.lower() for kw in ["comment", "leave", "reply", "search", "navigation"]):
+                head_country, head_cuisine = infer_cuisine_and_country(url, title_text)
                 extracted_dishes.append({
                     "name": title_text,
                     "native_name": None,
@@ -206,8 +233,8 @@ def extract_dishes_from_generic_recipe_site(soup: BeautifulSoup, url: str) -> li
                     "description": f"Popular recipe from {url}.",
                     "category": "traditional",
                     "meal_types": ["lunch", "dinner"],
-                    "cuisine_name": cuisine_name,
-                    "country_name": country_name,
+                    "cuisine_name": head_cuisine,
+                    "country_name": head_country,
                     "taste_profile": ["savory"],
                     "texture": None,
                     "prep_time_min": 20,

@@ -13,7 +13,7 @@ from fkg_common.models.parsed_page import ParsedPage
 
 @pytest.fixture
 def agent() -> DishInformationAgent:
-    return DishInformationAgent(model_name="llama3")
+    return DishInformationAgent(model_name="THUDM/GLM-Z1-9B-0414")
 
 
 @pytest.fixture
@@ -96,7 +96,7 @@ class TestDishInformationAgent:
           "reasoning": "Valid extraction from authoritative Wikipedia source content."
         }
         """
-        mock_llm.return_value = (mock_json, 150, 200, "ollama/llama3")
+        mock_llm.return_value = (mock_json, 150, 200, "vllm/THUDM/GLM-Z1-9B-0414")
 
         output, run_record = agent.run(
             sample_page,
@@ -104,6 +104,6 @@ class TestDishInformationAgent:
         )
 
         assert isinstance(output, DishOutput)
-        assert run_record.model_name == "ollama/llama3"
+        assert run_record.model_name == "vllm/THUDM/GLM-Z1-9B-0414"
         assert run_record.confidence == 0.92
         assert run_record.validation_passed is True

@@ -22,7 +22,9 @@ if DATABASE_URL.startswith("postgresql+asyncpg://"):
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://neo4j:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "fkgpassword")
+VLLM_URL = os.getenv("VLLM_BASE_URL", os.getenv("OPENAI_BASE_URL", "http://localhost:8000/v1"))
 OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+LLM_MODEL = os.getenv("LLM_MODEL_NAME", "THUDM/GLM-Z1-9B-0414")
 
 
 class CrawlRequest(BaseModel):
@@ -139,23 +141,41 @@ async def get_services_status():
 @router.get("/agents", summary="Detailed status, description, and LLM configuration for all AI Agents")
 async def get_agents_status():
     """Returns metadata, status, provider model, and purpose for all 6 specialized AI Agents."""
-    # Check Ollama / OpenAI availability
+    # Check vLLM / Ollama availability
+    vllm_online = False
     ollama_online = False
+
     try:
         async with httpx.AsyncClient(timeout=1.5) as client:
-            resp = await client.get(f"{OLLAMA_URL}/api/version")
-            ollama_online = resp.status_code == 200
+            resp = await client.get(f"{VLLM_URL.rstrip('/')}/models")
+            vllm_online = resp.status_code == 200
     except Exception:
-        ollama_online = False
+        vllm_online = False
 
-    llm_provider = "Ollama (llama3)" if ollama_online else "Fallback Rule Engine (Offline LLM Guard)"
+    if not vllm_online:
+        try:
+            async with httpx.AsyncClient(timeout=1.5) as client:
+                resp = await client.get(f"{OLLAMA_URL}/api/version")
+                ollama_online = resp.status_code == 200
+        except Exception:
+            ollama_online = False
+
+    if vllm_online:
+        llm_provider = f"vLLM ({LLM_MODEL})"
+        llm_online = True
+    elif ollama_online:
+        llm_provider = "Ollama (llama3)"
+        llm_online = True
+    else:
+        llm_provider = "Fallback Rule Engine (Offline LLM Guard)"
+        llm_online = False
 
     agents = [
         {
             "id": "agent-1",
             "code": "Agent 1",
             "name": "UrlClassifierAgent",
-            "status": "healthy" if ollama_online else "active_fallback",
+            "status": "healthy" if llm_online else "active_fallback",
             "provider": llm_provider,
             "description": "Analyzes target web URL structures and classifies incoming pages (Recipe Page vs Blog Index vs Wikipedia).",
             "input": "Web URL & DOM structure",
@@ -175,7 +195,7 @@ async def get_agents_status():
             "id": "agent-3",
             "code": "Agent 3",
             "name": "DishDiscoveryAgent",
-            "status": "healthy" if ollama_online else "active_fallback",
+            "status": "healthy" if llm_online else "active_fallback",
             "provider": llm_provider,
             "description": "Uses AI reasoning to discover valid culinary dish entities while rejecting generic website collection/category headers ('Festive Sweets', 'Popular Recipes').",
             "input": "Candidate Dish Name + Page Context",
@@ -185,7 +205,7 @@ async def get_agents_status():
             "id": "agent-4",
             "code": "Agent 4",
             "name": "DishInformationAgent",
-            "status": "healthy" if ollama_online else "active_fallback",
+            "status": "healthy" if llm_online else "active_fallback",
             "provider": llm_provider,
             "description": "Extracts detailed culinary metadata including ingredients, nutrition estimates, prep/cook times, and dietary flags (vegan/vegetarian).",
             "input": "Recipe Text & Ingredient Lists",
@@ -210,6 +230,16 @@ async def get_agents_status():
             "description": "Resolves entity aliases (e.g. 'Pani Puri' = 'Gol Gappa' = 'Gupchup') and merges node relationships into the Neo4j Knowledge Graph.",
             "input": "Normalized Entity Names",
             "output": "Neo4j Graph Node & Edge Mutations",
+        },
+        {
+            "id": "agent-7",
+            "code": "Agent 7",
+            "name": "DishIngredientEnrichmentAgent",
+            "status": "healthy" if llm_online else "active_fallback",
+            "provider": llm_provider,
+            "description": "Detects dishes missing ingredients, performs online web recipe searches, and enriches the Knowledge Graph with structured ingredient lists.",
+            "input": "Dish Name & Optional Description",
+            "output": "Extracted Canonical Ingredients & Recipe Summary",
         },
     ]
     return {"agents": agents}

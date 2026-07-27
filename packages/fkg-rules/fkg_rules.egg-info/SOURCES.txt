@@ -1,0 +1,7 @@
+pyproject.toml
+fkg_rules/rule_engine.py
+fkg_rules.egg-info/PKG-INFO
+fkg_rules.egg-info/SOURCES.txt
+fkg_rules.egg-info/dependency_links.txt
+fkg_rules.egg-info/requires.txt
+fkg_rules.egg-info/top_level.txt

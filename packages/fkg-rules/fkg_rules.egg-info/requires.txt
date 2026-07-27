@@ -1,0 +1,2 @@
+fkg-common
+pyyaml>=6.0

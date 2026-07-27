@@ -376,3 +376,18 @@ class DishOutput(BaseModel):
                 "missing_fields": ["aroma", "seasonality"],
             }
         }
+
+
+class DishIngredientEnrichmentOutput(BaseModel):
+    """Output produced by Agent 7 (DishIngredientEnrichmentAgent) after searching web for ingredients."""
+
+    dish_name: str = Field(..., description="Name of the dish being enriched")
+    is_found: bool = Field(True, description="True if recipe/ingredients were found via web search")
+    ingredients: list[str] = Field(default_factory=list, description="Extracted canonical ingredient names")
+    detailed_ingredients: list[IngredientRef] = Field(
+        default_factory=list, description="Structured ingredient references with amounts/units"
+    )
+    recipe_summary: Optional[str] = Field(None, description="Brief recipe overview extracted from online source")
+    confidence: float = Field(default=0.88, ge=0.0, le=1.0, description="Agent confidence score")
+    source_url: Optional[str] = Field(None, description="Web source URL where recipe ingredients were retrieved")
+    reasoning: str = Field(..., description="Explanation of how ingredients were discovered and parsed")

@@ -165,7 +165,9 @@ services:
     environment:
       DATABASE_URL: postgresql://fkg:fkgpassword@postgres:5432/fkg
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://host.docker.internal:8000/v1}
       OLLAMA_BASE_URL: http://ollama:11434
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-THUDM/GLM-Z1-9B-0414}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-your_openai_api_key}
 
   # ──────────────────────────────────────────────────────────────────────────
